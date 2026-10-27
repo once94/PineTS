@@ -198,7 +198,7 @@ export class TimeHelper {
             if (!tf) throw new PineRuntimeError(`Cannot parse resolution '${timeframe}'. - Invalid format`, 'time');
             // Open time of the bar of `timeframe` that contains this bar
             const syminfo = this.context.pine?.syminfo;
-            htfBarTime = tradingPeriodStart(currentTime, tf, syminfo?.timezone || 'UTC', syminfo?.session);
+            htfBarTime = tradingPeriodStart(currentTime, tf, syminfo?.timezone || 'UTC', syminfo?.session, syminfo?.holidays);
         }
 
         // Session filtering

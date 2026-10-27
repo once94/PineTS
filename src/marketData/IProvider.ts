@@ -43,6 +43,9 @@ export type ISymbolInfo = {
     // Session & Market
     expiration_date: number; //Pinescript timestamp
     session: string;
+    /** Exchange holidays, `YYYY-MM-DD` in `timezone` (not a TradingView field). A session traded on a
+     *  holiday belongs to the next business day, as in the exchange's trade dates. Optional. */
+    holidays?: string[];
     volumetype: string;
 
     // Price & Contract Info
