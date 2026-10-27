@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 import { Series } from '../../../Series';
-import { getDatePartsInTimezone } from '../../Time';
+import { tradingDayOf } from '../../tradingPeriod';
 
 /**
  * VWAP - Volume Weighted Average Price
  *
  * Forms:
  * - `ta.vwap` (built-in variable): VWAP of hlc3
- * - `ta.vwap(source)`: resets at the start of each trading day (exchange timezone)
+ * - `ta.vwap(source)`: resets at the start of each trading day on the symbol's trading calendar
+ *   (the session open: 17:00 CT for a CME future with session `1700-1600`, local midnight
+ *   for a symbol without an overnight session), as `timeframe.change("D")`
  * - `ta.vwap(source, anchor)`: resets on every bar where `anchor` is true; na until the first reset
  * - `ta.vwap(source, anchor, stdev_mult)`: tuple [vwap, upper band, lower band]
  *
@@ -72,11 +74,11 @@ export function vwap(context: any) {
         if (hasAnchor) {
             reset = !!Series.from(args[1]).get(0);
         } else {
-            // Detect new session (new trading day) using exchange timezone
+            // New trading day: the same calendar `timeframe.change("D")` uses, so an overnight
+            // session (CME `1700-1600`) resets at its 17:00 open, not at local midnight.
             const currentOpenTime = Series.from(context.data.openTime).get(0);
             const timezone = context.pine?.syminfo?.timezone || 'UTC';
-            const parts = getDatePartsInTimezone(currentOpenTime, timezone);
-            const currentSessionDate = `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
+            const currentSessionDate = tradingDayOf(currentOpenTime, timezone, context.pine?.syminfo?.session);
             reset = lastSessionDate !== currentSessionDate;
             lastSessionDate = currentSessionDate;
         }
