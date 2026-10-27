@@ -1,0 +1,33 @@
+# Len na forku once94/PineTS: testy a zostavenie balíka pre opravu ta.vwap.
+# Nie je súčasťou PR do LuxAlgo/PineTS.
+name: ci-vwap
+on:
+  push:
+    branches: [ci/vwap-tests]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts
+      - name: Nový test VWAP
+        run: npx vitest run tests/namespaces/ta/vwap-trading-day.test.ts --reporter verbose
+      - name: Všetky testy
+        run: npm test -- --run
+      - name: Zostavenie a balík
+        run: |
+          npm run build:prod:all
+          npm pack
+          sha256sum pinets-*.tgz | tee pinets.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pinets-vwapfix
+          path: |
+            pinets-*.tgz
+            pinets.sha256
