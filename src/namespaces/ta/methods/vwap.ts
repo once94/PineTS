@@ -78,7 +78,8 @@ export function vwap(context: any) {
             // session (CME `1700-1600`) resets at its 17:00 open, not at local midnight.
             const currentOpenTime = Series.from(context.data.openTime).get(0);
             const timezone = context.pine?.syminfo?.timezone || 'UTC';
-            const currentSessionDate = tradingDayOf(currentOpenTime, timezone, context.pine?.syminfo?.session);
+            const syminfo = context.pine?.syminfo;
+            const currentSessionDate = tradingDayOf(currentOpenTime, timezone, syminfo?.session, syminfo?.holidays);
             reset = lastSessionDate !== currentSessionDate;
             lastSessionDate = currentSessionDate;
         }

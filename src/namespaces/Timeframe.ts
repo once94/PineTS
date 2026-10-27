@@ -93,7 +93,10 @@ export class Timeframe {
 
         const syminfo = this.context.pine?.syminfo;
         const timezone = syminfo?.timezone || 'UTC';
-        return tradingPeriodKey(currentTime, tf, timezone, syminfo?.session) !== tradingPeriodKey(prevTime, tf, timezone, syminfo?.session);
+        return (
+            tradingPeriodKey(currentTime, tf, timezone, syminfo?.session, syminfo?.holidays) !==
+            tradingPeriodKey(prevTime, tf, timezone, syminfo?.session, syminfo?.holidays)
+        );
     }
 
     public from_seconds(seconds: any) {
