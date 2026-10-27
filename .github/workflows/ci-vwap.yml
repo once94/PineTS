@@ -17,7 +17,7 @@ jobs:
           node-version: '24'
       - run: npm ci --ignore-scripts
       - name: Nový test VWAP
-        run: npx vitest run tests/namespaces/ta/vwap-trading-day.test.ts --reporter verbose
+        run: npx vitest run tests/namespaces/ta/vwap-trading-day.test.ts tests/namespaces/trading-calendar-holidays.test.ts --reporter verbose
       - name: Všetky testy
         run: npm test -- --run --reporter=json --outputFile=vysledky.json || true
       - name: Zostavenie a balík
