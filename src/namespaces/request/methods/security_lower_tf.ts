@@ -224,6 +224,7 @@ async function buildFastBuiltinSecContext(
     // populated arrays — never call `run()`, so no transpile, no
     // iteration, no shifts, no helpers.
     const pineTS = new PineTS(context.source, _symbol, _timeframe, _calc_bars_count, effectiveSDate, secEDate);
+    if (context.collectVisuals === false) pineTS.setCollectVisuals(false);
     pineTS.markAsSecondary(context);
     await pineTS.ready();
 
@@ -404,6 +405,7 @@ export function security_lower_tf(context: any) {
                 const secEDate = lastBarCloseTime || context.eDate || Date.now();
 
                 const pineTS = new PineTS(context.source, _symbol, _timeframe, _calc_bars_count, adjustedSDate, secEDate);
+                if (context.collectVisuals === false) pineTS.setCollectVisuals(false);
                 pineTS.markAsSecondary(context);
 
                 // The call site's truncated slice (the prefix of statements

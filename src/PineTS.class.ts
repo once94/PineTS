@@ -68,6 +68,15 @@ export class PineTS {
     private _currentIndicator: Indicator | null = null;
 
     private _isSecondaryContext: boolean = false;
+    private _collectVisuals: boolean = true;
+
+    /** Applies to newly created run contexts; calculations and drawing IDs remain active. */
+    public setCollectVisuals(enabled: boolean): this {
+        if (typeof enabled !== 'boolean') throw new TypeError('collectVisuals must be boolean');
+        this._collectVisuals = enabled;
+        return this;
+    }
+
     /**
      * Mark this instance as the secondary context of a `request.*` call.
      * It inherits what its parent runs with: the import resolver.
@@ -1147,6 +1156,7 @@ export class PineTS {
         context.viewportLeft = this._viewportLeft;
         context.viewportRight = this._viewportRight;
 
+        context.collectVisuals = this._collectVisuals;
         context.__maxLoops = this._maxLoops;
         context._alertMode = this._alertMode;
         context._fillsOnTickGrid = this._fillsOnTickGrid;

@@ -26,6 +26,8 @@ export class PolylineHelper {
     }
 
     public syncToPlot() {
+        this._polylines = this._polylines.filter(pl => !pl._deleted);
+        if (this.context.collectVisuals === false) return;
         this._ensurePlotsEntry();
         // Store ALL polylines as a single array value at the first bar's time.
         // Same aggregation pattern as lines and linefills — prevents sparse array
@@ -33,7 +35,6 @@ export class PolylineHelper {
         const time = this.context.marketData[0]?.openTime || 0;
         // Compact out deleted polylines — bounded array (RC3), transparent output;
         // rollbackFromBar filters by _createdAtBar, orthogonal to _deleted.
-        this._polylines = this._polylines.filter(pl => !pl._deleted);
         this.context.plots['__polylines__'].data = [{
             time,
             value: this._polylines.map(pl => pl.toPlotData()),

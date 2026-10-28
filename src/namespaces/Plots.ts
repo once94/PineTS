@@ -239,19 +239,21 @@ export class PlotHelper {
 
         const value = Series.from(series).get(0);
 
-        this.context.plots[plotKey].data.push({
-            title,
-            time: this.context.marketData[this.context.idx].openTime,
-            value: value,
-            options: {
-                char: options.char,
-                color: options.color,
-                textcolor: options.textcolor,
-                location: options.location,
-                size: options.size,
-                offset: options.offset,
-            },
-        });
+        if (this.context.collectVisuals !== false) {
+            this.context.plots[plotKey].data.push({
+                title,
+                time: this.context.marketData[this.context.idx].openTime,
+                value: value,
+                options: {
+                    char: options.char,
+                    color: options.color,
+                    textcolor: options.textcolor,
+                    location: options.location,
+                    size: options.size,
+                    offset: options.offset,
+                },
+            });
+        }
         return this.context.plots[plotKey];
     }
 
@@ -289,12 +291,14 @@ export class PlotHelper {
         const pointOptions: any = { color: pointColor };
         if ('offset' in others) pointOptions.offset = options.offset;
 
-        this.context.plots[plotKey].data.push({
-            title,
-            time: this.context.marketData[this.context.idx].openTime,
-            value: value,
-            options: pointOptions,
-        });
+        if (this.context.collectVisuals !== false) {
+            this.context.plots[plotKey].data.push({
+                title,
+                time: this.context.marketData[this.context.idx].openTime,
+                value: value,
+                options: pointOptions,
+            });
+        }
         return this.context.plots[plotKey];
     }
     @silentInSecondary
@@ -316,23 +320,25 @@ export class PlotHelper {
             };
         }
         const value = Series.from(series).get(0);
-        this.context.plots[plotKey].data.push({
-            title,
-            time: this.context.marketData[this.context.idx].openTime,
-            value: value,
-            options:
-                options?.location === 'absolute' || value
-                    ? {
-                        text: options.text,
-                        textcolor: options.textcolor,
-                        color: options.color,
-                        offset: options.offset,
-                        shape: options.style,
-                        location: options.location,
-                        size: options.size,
-                    }
-                    : undefined,
-        });
+        if (this.context.collectVisuals !== false) {
+            this.context.plots[plotKey].data.push({
+                title,
+                time: this.context.marketData[this.context.idx].openTime,
+                value: value,
+                options:
+                    options?.location === 'absolute' || value
+                        ? {
+                            text: options.text,
+                            textcolor: options.textcolor,
+                            color: options.color,
+                            offset: options.offset,
+                            shape: options.style,
+                            location: options.location,
+                            size: options.size,
+                        }
+                        : undefined,
+            });
+        }
         return this.context.plots[plotKey];
     }
 
@@ -350,23 +356,25 @@ export class PlotHelper {
             this.context.plots[plotKey] = { data: [], options: { ...options, style: 'shape', overlay }, title, _plotKey: plotKey, _callsiteId: callsiteId };
         }
 
-        this.context.plots[plotKey].data.push({
-            title,
-            time: this.context.marketData[this.context.idx].openTime,
-            value: value,
-            options:
-                typeof value === 'number' && !isNaN(value) && value !== 0
-                    ? {
-                          text: undefined,
-                          textcolor: undefined,
-                          color: value > 0 ? options.colorup : options.colordown,
-                          offset: options.offset,
-                          shape: value > 0 ? 'shape_arrow_up' : 'shape_arrow_down',
-                          location: value > 0 ? 'BelowBar' : 'AboveBar',
-                          height: options.maxheight,
-                      }
-                    : undefined,
-        });
+        if (this.context.collectVisuals !== false) {
+            this.context.plots[plotKey].data.push({
+                title,
+                time: this.context.marketData[this.context.idx].openTime,
+                value: value,
+                options:
+                    typeof value === 'number' && !isNaN(value) && value !== 0
+                        ? {
+                              text: undefined,
+                              textcolor: undefined,
+                              color: value > 0 ? options.colorup : options.colordown,
+                              offset: options.offset,
+                              shape: value > 0 ? 'shape_arrow_up' : 'shape_arrow_down',
+                              location: value > 0 ? 'BelowBar' : 'AboveBar',
+                              height: options.maxheight,
+                          }
+                        : undefined,
+            });
+        }
         return this.context.plots[plotKey];
     }
 
@@ -385,12 +393,14 @@ export class PlotHelper {
 
         const value = [Series.from(open).get(0), Series.from(high).get(0), Series.from(low).get(0), Series.from(close).get(0)];
 
-        this.context.plots[plotKey].data.push({
-            title,
-            time: this.context.marketData[this.context.idx].openTime,
-            value: value,
-            options: { color: options.color },
-        });
+        if (this.context.collectVisuals !== false) {
+            this.context.plots[plotKey].data.push({
+                title,
+                time: this.context.marketData[this.context.idx].openTime,
+                value: value,
+                options: { color: options.color },
+            });
+        }
     }
 
     @silentInSecondary
@@ -408,12 +418,14 @@ export class PlotHelper {
 
         const value = [Series.from(open).get(0), Series.from(high).get(0), Series.from(low).get(0), Series.from(close).get(0)];
 
-        this.context.plots[plotKey].data.push({
-            title,
-            time: this.context.marketData[this.context.idx].openTime,
-            value: value,
-            options: { color: options.color, wickcolor: options.wickcolor, bordercolor: options.bordercolor },
-        });
+        if (this.context.collectVisuals !== false) {
+            this.context.plots[plotKey].data.push({
+                title,
+                time: this.context.marketData[this.context.idx].openTime,
+                value: value,
+                options: { color: options.color, wickcolor: options.wickcolor, bordercolor: options.bordercolor },
+            });
+        }
         return this.context.plots[plotKey];
     }
 
@@ -430,12 +442,14 @@ export class PlotHelper {
             this.context.plots[plotKey] = { data: [], options: { ...options, style: 'background', overlay }, title, _plotKey: plotKey, _callsiteId: callsiteId };
         }
 
-        this.context.plots[plotKey].data.push({
-            title,
-            time: this.context.marketData[this.context.idx].openTime,
-            value: options.color && options.color !== 'na' && options?.color.toString() !== 'NaN',
-            options: { color: options.color },
-        });
+        if (this.context.collectVisuals !== false) {
+            this.context.plots[plotKey].data.push({
+                title,
+                time: this.context.marketData[this.context.idx].openTime,
+                value: options.color && options.color !== 'na' && options?.color.toString() !== 'NaN',
+                options: { color: options.color },
+            });
+        }
     }
     @silentInSecondary
     barcolor(...args) {
@@ -449,12 +463,14 @@ export class PlotHelper {
             this.context.plots[plotKey] = { data: [], options: { ...options, style: 'barcolor' }, title, _plotKey: plotKey, _callsiteId: callsiteId };
         }
 
-        this.context.plots[plotKey].data.push({
-            title,
-            time: this.context.marketData[this.context.idx].openTime,
-            value: options.color && options.color !== 'na' && options?.color.toString() !== 'NaN',
-            options: { color: options.color },
-        });
+        if (this.context.collectVisuals !== false) {
+            this.context.plots[plotKey].data.push({
+                title,
+                time: this.context.marketData[this.context.idx].openTime,
+                value: options.color && options.color !== 'na' && options?.color.toString() !== 'NaN',
+                options: { color: options.color },
+            });
+        }
         return this.context.plots[plotKey];
     }
 }
@@ -554,11 +570,13 @@ export class FillHelper {
             }
 
             // Push per-bar gradient data
-            this.context.plots[fillKey].data.push({
-                time: this.context.marketData[this.context.idx].openTime,
-                value: null,
-                options: { top_value, bottom_value, top_color, bottom_color },
-            });
+            if (this.context.collectVisuals !== false) {
+                this.context.plots[fillKey].data.push({
+                    time: this.context.marketData[this.context.idx].openTime,
+                    value: null,
+                    options: { top_value, bottom_value, top_color, bottom_color },
+                });
+            }
         } else {
             const first = Series.from(named && 'plot1' in named ? named.plot1 : args[0]).get(0);
             const signature = first?.options?.style === 'hline' ? HLINE_FILL_SIGNATURE : FILL_SIGNATURE;
@@ -596,11 +614,13 @@ export class FillHelper {
 
             // Always push per-bar color data so dynamic colors (e.g. green/red flip) work.
             // The fill renderer will use per-bar colors when the data array is populated.
-            this.context.plots[fillKey].data.push({
-                time: this.context.marketData[this.context.idx].openTime,
-                value: null,
-                options: { color: resolvedColor },
-            });
+            if (this.context.collectVisuals !== false) {
+                this.context.plots[fillKey].data.push({
+                    time: this.context.marketData[this.context.idx].openTime,
+                    value: null,
+                    options: { color: resolvedColor },
+                });
+            }
         }
     }
 }

@@ -325,6 +325,7 @@ export function security(context: any) {
         // Pass calc_bars_count as `periods` so the secondary fetches that many bars
         // ending at secEDate — gives the script the historical depth it asked for.
         const pineTS = new PineTS(context.source, _symbol, _timeframe, _calc_bars_count, adjustedSDate, secEDate);
+        if (context.collectVisuals === false) pineTS.setCollectVisuals(false);
 
         // Mark as secondary context to prevent infinite recursion
         pineTS.markAsSecondary(context);

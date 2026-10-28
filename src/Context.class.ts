@@ -149,6 +149,8 @@ export class Context {
 
     public result: any = undefined;
     public plots: any = {};
+    /** Host option: retain plot handles/drawing state, but skip rendered payloads. */
+    public collectVisuals: boolean = true;
 
     public marketData: any;
     public source: IProvider | any[];
@@ -203,6 +205,7 @@ export class Context {
         this.sDate = sDate;
         this.eDate = eDate;
         this.fullContext = fullContext || this;
+        this.collectVisuals = this.fullContext.collectVisuals;
         this.inputs = inputs || {};
         // console.log('Context initialized with inputs keys:', Object.keys(this.inputs));
         // Initialize core functions

@@ -45,11 +45,12 @@ export class BoxHelper {
     }
 
     public syncToPlot() {
+        this._boxes = this._boxes.filter(bx => !bx._deleted);
+        if (this.context.collectVisuals === false) return;
         this._ensurePlotsEntry();
         const time = this.context.marketData[0]?.openTime || 0;
         // Compact out deleted boxes — bounded array (RC3), transparent output;
         // rollbackFromBar filters by _createdAtBar, orthogonal to _deleted.
-        this._boxes = this._boxes.filter(bx => !bx._deleted);
         const allPlotData = this._boxes.map(bx => bx.toPlotData());
 
         // Split force_overlay objects into a separate overlay plot (renders on main chart pane)

@@ -133,6 +133,31 @@ export class Indicator {
     }
 
     /**
+     * Share compiled code/metadata with a clean configuration. Runtime state and
+     * user overrides are NEVER inherited; each PineTS.run still creates a Context.
+     * Call resolveImports/prepare on the template before forking imported scripts.
+     */
+    public fork(inputs: Record<string, unknown> = {}): Indicator {
+        const prepared = this.prepare();
+        this._ensureInputsScanned();
+        this._ensurePropsScanned();
+        const child = new Indicator(this.source, { ...inputs });
+        child._libraries = this._libraries ? { ...this._libraries } : null;
+        child._librariesResolver = this._librariesResolver;
+        child._inputMeta = this._inputMeta!.map(m => ({ ...m, ...(m.options ? { options: [...m.options] } : {}) }));
+        child._propMeta = this._propMeta!.map(m => ({ ...m, ...(m.options ? { options: [...m.options] } : {}) }));
+        child._declarationType = this._declarationType;
+        child._sourcePropArgs = { ...this._sourcePropArgs };
+        child._prepared = {
+            fn: prepared.fn,
+            get inputs() { return child.getRuntimeInputs(); },
+            usesVisibleRange: prepared.usesVisibleRange,
+            ltfSlices: prepared.ltfSlices,
+        };
+        return child;
+    }
+
+    /**
      * Fetch the sources of the libraries the script imports (and theirs)
      * through `resolver`, for `prepare()` to link. `PineTS.run()` calls it with
      * the resolver set by `setImportResolver`. Run with another resolver, the
@@ -228,17 +253,19 @@ export class Indicator {
     // ── internals ───────────────────────────────────────────────────────
 
     private _ensureInputsScanned(): void {
-        if (this._inputMeta) return;
-        this._inputMeta = scanInputs(this.source, this._libraries ?? undefined);
-        // Present color-input defaults in one canonical form: an 8-digit
-        // RGBA hex string (#RRGGBBAA). The scanner records them verbatim —
-        // `#ff0000`, a `color.red` path, `rgb(...)`, etc. — so normalize
-        // here, before the proxy seeds its default values, so getInputsMeta()
-        // and `.input` reads agree. Runtime is unaffected (getRuntimeInputs()
-        // only forwards explicit overrides, never these defaults).
-        for (const m of this._inputMeta) {
-            if (m.type === 'color' && m.defval !== undefined) {
-                m.defval = normalizeColorToRgbaHex(m.defval);
+        if (this._inputProxy) return;
+        if (!this._inputMeta) {
+            this._inputMeta = scanInputs(this.source, this._libraries ?? undefined);
+            // Present color-input defaults in one canonical form: an 8-digit
+            // RGBA hex string (#RRGGBBAA). The scanner records them verbatim —
+            // `#ff0000`, a `color.red` path, `rgb(...)`, etc. — so normalize
+            // here, before the proxy seeds its default values, so getInputsMeta()
+            // and `.input` reads agree. Runtime is unaffected (getRuntimeInputs()
+            // only forwards explicit overrides, never these defaults).
+            for (const m of this._inputMeta) {
+                if (m.type === 'color' && m.defval !== undefined) {
+                    m.defval = normalizeColorToRgbaHex(m.defval);
+                }
             }
         }
         const built = buildInputProxy(this._inputMeta, (key) => this._explicitOverrides.add(key));
@@ -253,11 +280,13 @@ export class Indicator {
     }
 
     private _ensurePropsScanned(): void {
-        if (this._propMeta) return;
-        const scanned = scanDeclaration(this.source);
-        this._declarationType = scanned.type;
-        this._sourcePropArgs = scanned.args;
-        this._propMeta = propsForDeclaration(scanned.type);
+        if (this._propProxy) return;
+        if (!this._propMeta) {
+            const scanned = scanDeclaration(this.source);
+            this._declarationType = scanned.type;
+            this._sourcePropArgs = scanned.args;
+            this._propMeta = propsForDeclaration(scanned.type);
+        }
         const built = buildPropProxy(
             this._propMeta,
             this._sourcePropArgs,

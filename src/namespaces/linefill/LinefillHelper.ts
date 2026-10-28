@@ -26,11 +26,12 @@ export class LinefillHelper {
     }
 
     public syncToPlot() {
+        this._linefills = this._linefills.filter(lf => !lf._deleted);
+        if (this.context.collectVisuals === false) return;
         this._ensurePlotsEntry();
         const time = this.context.marketData[0]?.openTime || 0;
         // Compact out deleted linefills — bounded array (RC3), transparent output;
         // rollbackFromBar filters by _createdAtBar, orthogonal to _deleted.
-        this._linefills = this._linefills.filter(lf => !lf._deleted);
         const allPlotData = this._linefills.map(lf => lf.toPlotData());
 
         // Split force_overlay linefills into a separate overlay plot

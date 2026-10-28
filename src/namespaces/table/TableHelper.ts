@@ -38,11 +38,12 @@ export class TableHelper {
     }
 
     public syncToPlot() {
+        this._tables = this._tables.filter(tbl => !tbl._deleted);
+        if (this.context.collectVisuals === false) return;
         this._ensurePlotsEntry();
         const time = this.context.marketData[0]?.openTime || 0;
         // Compact out deleted tables — bounded array (RC3), transparent output;
         // rollbackFromBar filters by _createdAtBar, orthogonal to _deleted.
-        this._tables = this._tables.filter(tbl => !tbl._deleted);
         this.context.plots['__tables__'].data = [{
             time,
             value: this._tables.map(tbl => tbl.toPlotData()),
