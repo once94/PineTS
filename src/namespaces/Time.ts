@@ -27,6 +27,13 @@ interface DateParts {
     dayOfWeek: number; // JS convention: 0=Sun, 1=Mon, ..., 6=Sat
 }
 
+// All IANA conversions below use the same locale/options. Each formatter keeps
+// a small FIFO of exact timestamps, never a reusable UTC offset (DST can change).
+// Bound both dimensions because Pine scripts may vary timezone and timestamp.
+const TIMEZONE_FORMATTER_LIMIT = 32;
+const DATE_PARTS_LIMIT = 8;
+const timezoneFormatters = new Map<string, { formatter: Intl.DateTimeFormat; parts: Map<number, DateParts> }>();
+
 /**
  * Decompose a UTC-millisecond timestamp into calendar parts
  * interpreted in the given timezone.
@@ -69,18 +76,35 @@ export function getDatePartsInTimezone(timestamp: number, timezone: string): Dat
 
     // IANA timezone name — use Intl.DateTimeFormat
     try {
-        const formatter = new Intl.DateTimeFormat('en-US', {
-            timeZone: timezone,
-            year: 'numeric',
-            month: 'numeric',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: 'numeric',
-            second: 'numeric',
-            weekday: 'short',
-            hour12: false,
-        });
-        const parts = formatter.formatToParts(new Date(timestamp));
+        let entry = timezoneFormatters.get(timezone);
+        if (!entry) {
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: timezone,
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: 'numeric',
+                second: 'numeric',
+                weekday: 'short',
+                hour12: false,
+            });
+            // Cache the exact input accepted by Intl; normalizing here would
+            // change the existing UTC fallback for whitespace-padded IANA names.
+            // Failed constructions are not retained. FIFO eviction bounds memory
+            // without updating insertion order on every hot-path lookup.
+            if (timezoneFormatters.size >= TIMEZONE_FORMATTER_LIMIT) {
+                timezoneFormatters.delete(timezoneFormatters.keys().next().value!);
+            }
+            entry = { formatter, parts: new Map() };
+            timezoneFormatters.set(timezone, entry);
+        }
+        // Non-number arguments can be mutable Date objects at the JS boundary.
+        // Preserve their original conversion behavior without memoizing identity.
+        const memoizable = typeof timestamp === 'number' && Number.isFinite(timestamp);
+        const cached = memoizable ? entry.parts.get(timestamp) : undefined;
+        if (cached) return { ...cached };
+        const parts = entry.formatter.formatToParts(new Date(timestamp));
         const get = (type: string) => parseInt(parts.find((p) => p.type === type)?.value || '0', 10);
 
         let hour = get('hour');
@@ -89,7 +113,7 @@ export function getDatePartsInTimezone(timestamp: number, timezone: string): Dat
         const weekdayStr = parts.find((p) => p.type === 'weekday')?.value || 'Sun';
         const dayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
 
-        return {
+        const result: DateParts = {
             year: get('year'),
             month: get('month'),
             day: get('day'),
@@ -98,6 +122,13 @@ export function getDatePartsInTimezone(timestamp: number, timezone: string): Dat
             second: get('second'),
             dayOfWeek: dayMap[weekdayStr] ?? 0,
         };
+        if (memoizable) {
+            if (entry.parts.size >= DATE_PARTS_LIMIT) entry.parts.delete(entry.parts.keys().next().value!);
+            // Never expose the stored object: this exported helper historically
+            // returns fresh, mutable date parts to each caller.
+            entry.parts.set(timestamp, { ...result });
+        }
+        return result;
     } catch {
         // Fallback to UTC on error
         const d = new Date(timestamp);
@@ -163,6 +194,9 @@ const TIME_ARGS_TYPES = {
 export class TimeHelper {
     private context: any;
     private dataField: string;
+    // Internal-only parsed specs cannot be mutated by callers of the exported
+    // parser. Keep its public fresh-object semantics and bound series inputs.
+    private _sessionSpecs = new Map<string, ReturnType<typeof parseSessionSpec>>();
 
     constructor(context: any, dataField: string = 'openTime') {
         this.context = context;
@@ -217,7 +251,12 @@ export class TimeHelper {
      * Malformed session strings halt the script, mirroring TradingView.
      */
     private _isInSession(timestamp: number, session: string, timezone: string): boolean {
-        const spec = parseSessionSpec(session);
+        let spec = this._sessionSpecs.get(session);
+        if (spec === undefined) {
+            spec = parseSessionSpec(session);
+            if (this._sessionSpecs.size >= 32) this._sessionSpecs.delete(this._sessionSpecs.keys().next().value!);
+            this._sessionSpecs.set(session, spec);
+        }
         if (!spec) {
             throw new PineRuntimeError(`Invalid session specification: "${session}"`, 'time');
         }
