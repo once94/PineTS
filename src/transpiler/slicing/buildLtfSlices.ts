@@ -307,6 +307,53 @@ function buildPhase3SliceStmts(wrapperBody: any, path: any[]): any[] | null {
     return result;
 }
 
+/**
+ * A standalone chart validation is not a dependency of a requested value.
+ * Keep this deliberately narrow: only top-level if statements with a runtime
+ * error and no writes/unknown calls qualify. Function bodies and the path to
+ * the request remain intact, so expression-local errors still propagate.
+ */
+function isStandaloneRuntimeValidation(stmt: any): boolean {
+    if (stmt?.type !== 'IfStatement') return false;
+    let hasError = false;
+    let safe = true;
+    function path(node: any): string {
+        if (node?.type === 'Identifier') return node.name;
+        if (node?.type === 'MemberExpression' && !node.computed) {
+            return path(node.object) + '.' + node.property.name;
+        }
+        return '';
+    }
+    function walk(node: any): void {
+        if (!safe || !node || typeof node !== 'object') return;
+        if (['AssignmentExpression', 'UpdateExpression', 'AwaitExpression',
+             'NewExpression', 'ReturnStatement', 'ThrowStatement',
+             'FunctionDeclaration', 'FunctionExpression', 'ArrowFunctionExpression'].includes(node.type)) {
+            safe = false; return;
+        }
+        if (node.type === 'VariableDeclaration' && node.kind !== 'const') {
+            safe = false; return;
+        }
+        if (node.type === 'CallExpression') {
+            const name = path(node.callee);
+            if (name === 'runtime.error') hasError = true;
+            if (!['runtime.error', 'runtime.param', 'timeframe.in_seconds',
+                  'timeframe.param', '$.get', '$.param'].includes(name)
+                    && !name.startsWith('$.pine.math.__')) {
+                safe = false; return;
+            }
+        }
+        for (const key of Object.keys(node)) {
+            if (AST_SKIP_KEYS.has(key)) continue;
+            const value = node[key];
+            if (Array.isArray(value)) value.forEach(walk);
+            else if (value && typeof value === 'object') walk(value);
+        }
+    }
+    walk(stmt);
+    return safe && hasError;
+}
+
 /** Wrap a sliced statement list back into an async arrow Function. */
 function buildSliceFunction(wrapperFn: any, slicedStmts: any[]): Function {
     const slicedAst = {
@@ -365,7 +412,7 @@ export function buildLtfSlices(ast: any): Record<string, Function> {
         }
         if (!stmts || stmts.length === 0) continue;
 
-        const sliceFn = buildSliceFunction(wrapperFn, stmts);
+        const sliceFn = buildSliceFunction(wrapperFn, stmts.filter((stmt) => !isStandaloneRuntimeValidation(stmt)));
         slices[exprName] = sliceFn;
     }
 
